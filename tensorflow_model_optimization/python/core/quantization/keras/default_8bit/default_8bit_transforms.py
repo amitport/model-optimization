@@ -102,7 +102,11 @@ def _normalize_tuple(value):
 
 
 class Conv2DBatchNormQuantize(transforms.Transform):
-  """Ensure FQ does not get placed between Conv and BatchNorm."""
+  """Transform to be applied to "Conv2D" + "BatchNorm" Graph.
+
+  This transform disables Quantization between Conv and BatchNorm
+  to ensure FQ does not get placed between them.
+  """
 
   def pattern(self):
     return LayerPattern(
