@@ -134,3 +134,42 @@ def hadamard_quantization(bits):
               stages_impl.HadamardEncodingStage.ENCODED_VALUES_KEY).add_parent(
                   stages_impl.FlattenEncodingStage(),
                   stages_impl.FlattenEncodingStage.ENCODED_VALUES_KEY).make()
+
+
+def drive(bias_correction=True):
+  """Returns DRIVE `Encoder`.
+
+  The `Encoder` first reshapes the input to a rank-1 `Tensor`, and applies the
+  randomized Hadamard transform (rotation). It then applies a rotation-aware sign.
+  Finally, the quantized values are bitpacked to an integer type.
+
+  This encoder is derived from the source published with "DRIVE: One-bit
+  Distributed Mean Estimation" (NeurIPS '21; https://arxiv.org/pdf/2105.08339.pdf),
+  and the algorithm presented therein.
+
+  Note that, if there is more than a single sender, each sender should use a
+  different seed for the Hadamard encoding stage.
+
+  The `Encoder` is a composition of the following encoding stages:
+  * `FlattenEncodingStage` - reshaping the input to a vector.
+  * `HadamardEncodingStage` - applying the Hadamard transform.
+  * `RotationAwareSignEncodingStage` - applying a rotation-aware sign.
+  * `BitpackingEncodingStage` - bitpacking the result into integer values.
+
+  Args:
+    bias_correction: A Python bool, whether to use bias correcting or
+      MSE minimizing scale.
+      If `True`, the encoding is on expectation unbiased.
+      If `False`, the encoding minimizes the MSE.
+
+  Returns:
+    The DRIVE `Encoder`.
+  """
+  return core_encoder.EncoderComposer(
+      stages_impl.BitpackingEncodingStage(1)).add_parent(
+          stages_impl.RotationAwareSignEncodingStage(bias_correction), stages_impl
+          .RotationAwareSignEncodingStage.ENCODED_VALUES_KEY).add_parent(
+              stages_impl.HadamardEncodingStage(),
+              stages_impl.HadamardEncodingStage.ENCODED_VALUES_KEY).add_parent(
+                  stages_impl.FlattenEncodingStage(),
+                  stages_impl.FlattenEncodingStage.ENCODED_VALUES_KEY).make()
